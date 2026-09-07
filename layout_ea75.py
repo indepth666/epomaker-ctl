@@ -1,4 +1,4 @@
-"""Disposition physique de l'EPOMAKER / AULA EA75 (MAX) — format 75 %.
+"""Disposition physique de l'EPOMAKER / AULA EA75 (MAX), format 75 %.
 
 Chaque touche : (label, id, largeur_en_U, code_hid, key_index).
 

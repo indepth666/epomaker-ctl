@@ -1,8 +1,8 @@
 # epomaker-ctl
 
 Linux control tool for **EPOMAKER / AULA** keyboards built on the **SONiX
-`0c45:800a`** chip (developed and tested on the *SONiX AULA EA75MAX*) — RGB
-effects, per-key color, key remapping and screen clock — without the Windows
+`0c45:800a`** chip (developed and tested on the *SONiX AULA EA75MAX*): RGB
+effects, per-key color, key remapping and screen clock, without the Windows
 software.
 
 - **CLI** (`epomaker.py`) and **headless apply** (`apply_profile.py`): Python
@@ -14,10 +14,21 @@ software.
 
 ---
 
+## Screenshots
+
+| | |
+|:---:|:---:|
+| **Lighting** | **Per-key** |
+| ![Lighting tab](docs/lighting.png) | ![Per-key tab](docs/perkey.png) |
+| **Remap** | **Calibration** |
+| ![Remap tab](docs/remap.png) | ![Calibration tab](docs/calibration.png) |
+
+---
+
 ## Install
 
 ```sh
-git clone https://github.com/hpinet/epomaker-ctl
+git clone https://github.com/indepth666/epomaker-ctl
 cd epomaker-ctl
 
 # CLI only: nothing to install (Python >= 3.10)
@@ -40,7 +51,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
 The keyboard is located by **VID/PID + interface number**, never by USB port or
-`hidrawN` index — any port works, on any machine.
+`hidrawN` index. Any port works, on any machine.
 
 ---
 
@@ -53,13 +64,13 @@ The keyboard exposes 4 HID interfaces:
 | 0 | standard key input |
 | 1 | media / knob / mouse |
 | 2 | LCD screen data (4096-byte output reports) |
-| 3 | **configuration** — 64-byte *feature* reports: RGB, remap, clock |
+| 3 | **configuration**: 64-byte *feature* reports (RGB, remap, clock) |
 
 `epomaker-ctl` writes 64-byte HID *feature* reports on interface 3 through the
 `HIDIOCSFEATURE` / `HIDIOCGFEATURE` ioctls (no `hidapi`, no `pyusb`).
 
 Every setting is a transaction:
-`04 18` (begin) → init → data → `04 02` (apply) → `04 F0` (finalize),
+`04 18` (begin), init, data, `04 02` (apply), `04 F0` (finalize),
 with a `GET_REPORT` read-back after some steps and a **35 ms** delay between
 commands.
 
@@ -78,11 +89,11 @@ The UI is in English; source comments and design notes are in French.
 
 | Tab | Purpose | Status |
 |-----|---------|--------|
-| **Lighting** | global RGB effect + color / brightness / speed / direction / rainbow + preview | ✅ tested |
-| **Per-key** | paint each key (left-click paints, right-click clears) | ⚠️ calibrate first |
-| **Remap** | reassign keys, normal/Fn layers, combos, media, mouse | ⚠️ calibrate first |
+| **Lighting** | global RGB effect + color / brightness / speed / direction / rainbow + preview | tested |
+| **Per-key** | paint each key (left-click paints, right-click clears) | calibrate first |
+| **Remap** | reassign keys, normal/Fn layers, combos, media, mouse | calibrate first |
 | **Calibration** | lights LEDs one by one to fix the index mapping | tool |
-| **Screen** | pushes system time to the keyboard clock (button + 10-min auto-sync) | ✅ tested |
+| **Screen** | pushes system time to the keyboard clock (button + 10-min auto-sync) | tested |
 | **Profiles** | save/load JSON configs, "apply on login" systemd service | |
 
 User config lives in `~/.config/epomaker-gui/` (`profiles/*.json`,
@@ -93,13 +104,13 @@ User config lives in `~/.config/epomaker-gui/` (`profiles/*.json`,
 Default light indices are taken from the F108 Pro. They should line up on the
 alphanumeric block, but **nothing is guaranteed for the EA75MAX**:
 
-1. **Calibration** tab → *Light this index* (turns on a single LED).
-2. Click the key that actually lit up → it gets bound to that index.
-3. *Next*, repeat → *Save corrections*.
+1. **Calibration** tab, *Light this index* (turns on a single LED).
+2. Click the key that actually lit up: it gets bound to that index.
+3. *Next*, repeat, then *Save corrections*.
 
 ### Persistence across reboot / re-plug
 
-**Profiles** tab → select a profile → *Install "apply on login" service*, then:
+**Profiles** tab, select a profile, *Install "apply on login" service*, then:
 
 ```sh
 systemctl --user enable --now epomaker-gui.service
@@ -128,7 +139,7 @@ pulsating tilt shuttle`.
 
 ---
 
-## Safety — read before hacking on this
+## Safety (read before hacking on this)
 
 - **Screen image / GIF upload: intentionally not implemented.**
   The SONiX firmware performs no write-bounds checking. On the F108 Pro, an
@@ -139,7 +150,7 @@ pulsating tilt shuttle`.
 - The other operations (RGB, remap, clock) use 64-byte feature reports and
   carry no known risk: worst case an unexpected setting, fixed by the next
   write or an FN reset.
-- **2.4 GHz** (`05 10`) and **Bluetooth** modes are not supported — use USB.
+- **2.4 GHz** (`05 10`) and **Bluetooth** modes are not supported; use USB.
 
 ---
 
@@ -157,8 +168,8 @@ pulsating tilt shuttle`.
 
 HID protocol reconstructed from
 [`parsiya/f108-pro`](https://github.com/parsiya/f108-pro) by Parsia Hakimian
-(MIT license) — Ghidra decompilation of the Aula software plus USB captures.
+(MIT license): Ghidra decompilation of the Aula software plus USB captures.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

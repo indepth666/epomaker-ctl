@@ -6,7 +6,8 @@
 Note : tout le texte visible est en anglais (demande utilisateur) ; les
 commentaires et la doc restent en francais.
 
-Onglets : Lighting (effet global) / Per-key / Remap / Calibration / Profiles.
+Onglets : Lighting (effet global) / Per-key / Remap / Calibration / Screen /
+Profiles.
 Le clavier ne renvoie jamais son etat : la GUI est la source de verite et
 repousse la configuration au clavier ("Apply").
 """
@@ -244,6 +245,17 @@ def dim(c: QtGui.QColor, brightness: int) -> QtGui.QColor:
     return QtGui.QColor(int(c.red() * k), int(c.green() * k), int(c.blue() * k))
 
 
+def kb_scroll(w: QtWidgets.QWidget) -> QtWidgets.QScrollArea:
+    """Enveloppe le widget clavier : jamais de scroll horizontal (il tient
+    toujours en largeur), scroll vertical seulement si la fenetre est basse."""
+    sa = QtWidgets.QScrollArea()
+    sa.setWidget(w)
+    sa.setWidgetResizable(True)
+    sa.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    sa.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+    return sa
+
+
 # ---------------------------------------------------------------------------
 # Widget clavier
 # ---------------------------------------------------------------------------
@@ -461,7 +473,7 @@ class EffectsTab(QtWidgets.QWidget):
         prev_card = card(
             section_label("Preview"),
             self.preview,
-            hint_label("Approximate — the real effect (animation, direction) "
+            hint_label("Approximate. The real effect (animation, direction) "
                        "plays on the keyboard after you press Apply."),
         )
 
@@ -601,7 +613,7 @@ class PerKeyTab(QtWidgets.QWidget):
         tools.setFixedWidth(300)
         tools.layout().addStretch()
 
-        board = card(section_label("Keyboard"), self._scroll(self.kb))
+        board = card(section_label("Keyboard"), kb_scroll(self.kb))
 
         row = QtWidgets.QHBoxLayout(self)
         row.setContentsMargins(16, 16, 16, 16)
@@ -609,12 +621,6 @@ class PerKeyTab(QtWidgets.QWidget):
         row.addWidget(tools)
         row.addWidget(board, 1)
 
-    def _scroll(self, w):
-        sa = QtWidgets.QScrollArea()
-        sa.setWidget(w)
-        sa.setWidgetResizable(True)
-        sa.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        return sa
 
     def _refresh_btn(self):
         self.swatch.setStyleSheet(f"#swatch {{ background: {self._color.name()}; }}")
@@ -665,7 +671,7 @@ class PerKeyTab(QtWidgets.QWidget):
         colors = {imap[k]: tuple(v) for k, v in self.app.profile.per_key.items()
                   if k in imap}
         if not colors:
-            self.app.status("Nothing to apply — no keys painted.")
+            self.app.status("Nothing to apply, no keys painted.")
             return
         b = self.bright.value()
         self.app.device(f"{len(colors)} key(s)",
@@ -835,7 +841,7 @@ class RemapTab(QtWidgets.QWidget):
         tools.setFixedWidth(300)
         tools.layout().addStretch()
 
-        board = card(section_label("Keyboard"), self._scroll(self.kb))
+        board = card(section_label("Keyboard"), kb_scroll(self.kb))
 
         row = QtWidgets.QHBoxLayout(self)
         row.setContentsMargins(16, 16, 16, 16)
@@ -843,11 +849,6 @@ class RemapTab(QtWidgets.QWidget):
         row.addWidget(tools)
         row.addWidget(board, 1)
 
-    def _scroll(self, w):
-        sa = QtWidgets.QScrollArea()
-        sa.setWidget(w)
-        sa.setWidgetResizable(True)
-        return sa
 
     def _switch_layer(self, i):
         self.layer = "fn" if i else "normal"
@@ -943,14 +944,14 @@ class CalibrationTab(QtWidgets.QWidget):
             _spacer(6),
             save, reset,
             hint_label("1. \"Light this index\" turns on a single LED.\n"
-                       "2. Click the key that actually lit up — it gets bound "
+                       "2. Click the key that actually lit up: it gets bound "
                        "to this index.\n3. \"Next\" and repeat. Defaults come "
                        "from the F108 Pro; green keys are your corrections."),
         )
         tools.setFixedWidth(320)
         tools.layout().addStretch()
 
-        board = card(section_label("Keyboard"), self._scroll(self.kb))
+        board = card(section_label("Keyboard"), kb_scroll(self.kb))
 
         row = QtWidgets.QHBoxLayout(self)
         row.setContentsMargins(16, 16, 16, 16)
@@ -959,11 +960,6 @@ class CalibrationTab(QtWidgets.QWidget):
         row.addWidget(board, 1)
         self._sync()
 
-    def _scroll(self, w):
-        sa = QtWidgets.QScrollArea()
-        sa.setWidget(w)
-        sa.setWidgetResizable(True)
-        return sa
 
     def _light(self):
         idx = self.spin.value()
@@ -1283,7 +1279,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dev_lbl.setText(f"connected · {path}")
         except SystemExit:
             self.dot.setStyleSheet("color: #d1495b;")
-            self.dev_lbl.setText("not detected — plug in over USB")
+            self.dev_lbl.setText("not detected, plug in over USB")
 
     def status(self, msg):
         self.statusBar().showMessage(msg, 8000)

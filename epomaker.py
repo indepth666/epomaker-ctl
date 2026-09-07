@@ -325,7 +325,7 @@ KEY_INDEX = {
 }
 
 
-# Codes USB HID (Usage Page 0x07) — cible d'un remap "touche".
+# Codes USB HID (Usage Page 0x07), cible d'un remap "touche".
 HID_CODE = {
     "esc": 0x29, "f1": 0x3A, "f2": 0x3B, "f3": 0x3C, "f4": 0x3D, "f5": 0x3E,
     "f6": 0x3F, "f7": 0x40, "f8": 0x41, "f9": 0x42, "f10": 0x43, "f11": 0x44,
