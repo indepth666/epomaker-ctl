@@ -1,163 +1,164 @@
 # epomaker-ctl
 
-Contrôle Linux des claviers **EPOMAKER / AULA** à puce **SONiX `0c45:800a`**
-(testé sur *SONiX AULA EA75MAX*) — RGB, couleur par touche, remap, horloge de
-l'écran — sans passer par le logiciel Windows.
+Linux control tool for **EPOMAKER / AULA** keyboards built on the **SONiX
+`0c45:800a`** chip (developed and tested on the *SONiX AULA EA75MAX*) — RGB
+effects, per-key color, key remapping and screen clock — without the Windows
+software.
 
-- **CLI** (`epomaker.py`) et **application headless** (`apply_profile.py`) :
-  bibliothèque standard Python uniquement, zéro dépendance.
-- **Interface graphique** (`gui.py`) : PySide6.
+- **CLI** (`epomaker.py`) and **headless apply** (`apply_profile.py`): Python
+  standard library only, no dependencies.
+- **GUI** (`gui.py`): PySide6.
 
-> ⚠️ Logiciel non officiel, fourni « tel quel ». Le protocole a été reconstitué
-> par rétro-ingénierie. Voir la section **Sécurité** plus bas.
+> ⚠️ Unofficial software, provided "as is". The protocol was reverse-engineered.
+> See the **Safety** section below.
 
 ---
 
-## Installation
+## Install
 
 ```sh
 git clone https://github.com/hpinet/epomaker-ctl
 cd epomaker-ctl
 
-# CLI seule : rien à installer (Python >= 3.10)
+# CLI only: nothing to install (Python >= 3.10)
 ./epomaker.py probe
 
-# GUI :
+# GUI:
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt      # PySide6
 python3 gui.py
 ```
 
-### Accès non-root à `/dev/hidraw*`
+### Non-root access to `/dev/hidraw*`
 
-L'ACL `uaccess` de systemd suffit souvent pour la session locale. Sinon :
+systemd's `uaccess` ACL is often enough for the local session. Otherwise:
 
 ```sh
 sudo cp 99-epomaker.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
-# puis rebrancher le clavier
+# then re-plug the keyboard
 ```
 
-Le clavier est retrouvé par **VID/PID + numéro d'interface**, jamais par le port
-ou le numéro `hidrawN` : n'importe quel port USB fonctionne.
+The keyboard is located by **VID/PID + interface number**, never by USB port or
+`hidrawN` index — any port works, on any machine.
 
 ---
 
-## Comment ça marche
+## How it works
 
-Le clavier expose 4 interfaces HID :
+The keyboard exposes 4 HID interfaces:
 
-| Interface | Rôle |
+| Interface | Role |
 |-----------|------|
-| 0 | frappe clavier standard |
-| 1 | multimédia / molette / souris |
-| 2 | données écran LCD (rapports output 4096 o) |
-| 3 | **configuration** — rapports *feature* 64 o : RGB, remap, horloge |
+| 0 | standard key input |
+| 1 | media / knob / mouse |
+| 2 | LCD screen data (4096-byte output reports) |
+| 3 | **configuration** — 64-byte *feature* reports: RGB, remap, clock |
 
-`epomaker-ctl` écrit des rapports HID *feature* de 64 octets sur l'interface 3
-via les ioctl `HIDIOCSFEATURE` / `HIDIOCGFEATURE` (pas de `hidapi` ni `pyusb`).
+`epomaker-ctl` writes 64-byte HID *feature* reports on interface 3 through the
+`HIDIOCSFEATURE` / `HIDIOCGFEATURE` ioctls (no `hidapi`, no `pyusb`).
 
-Chaque réglage est une transaction :
-`04 18` (begin) → init → données → `04 02` (apply) → `04 F0` (finalize),
-avec relecture (`GET_REPORT`) après certaines étapes et **35 ms** entre commandes.
+Every setting is a transaction:
+`04 18` (begin) → init → data → `04 02` (apply) → `04 F0` (finalize),
+with a `GET_REPORT` read-back after some steps and a **35 ms** delay between
+commands.
 
-> **Protocole write-only** : le clavier ne renvoie jamais sa configuration.
-> La CLI/GUI est la source de vérité et repousse l'état voulu.
+> **Write-only protocol**: the keyboard never reports its current configuration.
+> The CLI/GUI is the source of truth and pushes the desired state.
 
 ---
 
-## Interface graphique
+## GUI
 
 ```sh
 python3 gui.py
 ```
 
-L'UI est en anglais ; le code et cette doc restent en français.
+The UI is in English; source comments and design notes are in French.
 
-| Onglet | Rôle | État |
-|--------|------|------|
-| **Lighting** | effet RGB global + couleur / luminosité / vitesse / direction / arc-en-ciel + aperçu | ✅ testé |
-| **Per-key** | peindre chaque touche (clic gauche = peindre, clic droit = effacer) | ⚠️ calibrer d'abord |
-| **Remap** | réassigner des touches, couches normale/Fn, combos, multimédia, souris | ⚠️ calibrer d'abord |
-| **Calibration** | allume les LED une par une pour corriger le mapping des index | outil |
-| **Screen** | pousse l'heure système sur l'écran (bouton + auto-sync 10 min) | ✅ testé |
-| **Profiles** | sauver/charger des configs JSON, service systemd « appliquer au démarrage » | |
+| Tab | Purpose | Status |
+|-----|---------|--------|
+| **Lighting** | global RGB effect + color / brightness / speed / direction / rainbow + preview | ✅ tested |
+| **Per-key** | paint each key (left-click paints, right-click clears) | ⚠️ calibrate first |
+| **Remap** | reassign keys, normal/Fn layers, combos, media, mouse | ⚠️ calibrate first |
+| **Calibration** | lights LEDs one by one to fix the index mapping | tool |
+| **Screen** | pushes system time to the keyboard clock (button + 10-min auto-sync) | ✅ tested |
+| **Profiles** | save/load JSON configs, "apply on login" systemd service | |
 
-Config utilisateur : `~/.config/epomaker-gui/` (`profiles/*.json`,
+User config lives in `~/.config/epomaker-gui/` (`profiles/*.json`,
 `layout_overrides.json`, `last.json`).
 
-### Calibration (indispensable pour Per-key et Remap)
+### Calibration (required for Per-key and Remap)
 
-Les index lumineux par défaut viennent du F108 Pro. Sur le bloc alphanumérique
-ils devraient coïncider, mais **rien n'est garanti pour l'EA75MAX** :
+Default light indices are taken from the F108 Pro. They should line up on the
+alphanumeric block, but **nothing is guaranteed for the EA75MAX**:
 
-1. Onglet **Calibration** → *Light this index* (n'allume qu'une LED).
-2. Clique la touche réellement allumée → elle est liée à cet index.
-3. *Next*, etc. → *Save corrections*.
+1. **Calibration** tab → *Light this index* (turns on a single LED).
+2. Click the key that actually lit up → it gets bound to that index.
+3. *Next*, repeat → *Save corrections*.
 
-### Persistance après reboot / débranchement
+### Persistence across reboot / re-plug
 
-Onglet **Profiles** → sélectionne un profil → *Install "apply on login" service*,
-puis :
+**Profiles** tab → select a profile → *Install "apply on login" service*, then:
 
 ```sh
 systemctl --user enable --now epomaker-gui.service
 ```
 
-Ou à la main : `./apply_profile.py <nom_profil>`.
+Or manually: `./apply_profile.py <profile_name>`.
 
 ---
 
-## Ligne de commande
+## Command line
 
 ```sh
-./epomaker.py probe                                   # test de communication
+./epomaker.py probe                                   # connectivity test
 ./epomaker.py light static  --color ff0000 --brightness 5
 ./epomaker.py light rolling --rainbow --speed 3
 ./epomaker.py light breath  --color 00aaff
 ./epomaker.py off
 ./epomaker.py perkey --color esc=ff0000 --color a=00ff00 --brightness 5
-./epomaker.py clock                                   # horloge de l'écran
-./epomaker.py -v light static --color 00ff00          # -v : trace les paquets
+./epomaker.py clock                                   # screen clock
+./epomaker.py -v light static --color 00ff00          # -v: trace HID packets
 ```
 
-**Effets :** `off static singleon singleoff glittering falling colourful breath
+**Effects:** `off static singleon singleoff glittering falling colourful breath
 spectrum outward scrolling rolling rotating explode launch ripples flowing
 pulsating tilt shuttle`.
 
 ---
 
-## Sécurité — à lire avant de bidouiller
+## Safety — read before hacking on this
 
-- **Upload d'image / GIF sur l'écran : non implémenté, volontairement.**
-  Le firmware SONiX ne vérifie aucune borne d'écriture. Sur le F108 Pro, un GIF
-  trop long a **écrasé définitivement les graphismes des menus** (flash SPI,
-  aucune récupération connue). La limite de frames n'existe que dans le logiciel
-  Windows et est inconnue pour l'EA75MAX. Ce dépôt ne fournit pas cette
-  fonction.
-- Les autres opérations (RGB, remap, horloge) passent par des rapports *feature*
-  de 64 o et sont sans risque connu : au pire un réglage inattendu, corrigé au
-  réglage suivant ou par un reset FN.
-- Modes **2.4 GHz** (`05 10`) et **Bluetooth** : non gérés — utiliser l'USB.
+- **Screen image / GIF upload: intentionally not implemented.**
+  The SONiX firmware performs no write-bounds checking. On the F108 Pro, an
+  over-long GIF **permanently overwrote the on-screen menu graphics** (SPI
+  flash, no known recovery). The frame limit only exists in the Windows
+  software and is unknown for the EA75MAX. This repo does not ship that
+  feature.
+- The other operations (RGB, remap, clock) use 64-byte feature reports and
+  carry no known risk: worst case an unexpected setting, fixed by the next
+  write or an FN reset.
+- **2.4 GHz** (`05 10`) and **Bluetooth** modes are not supported — use USB.
 
 ---
 
-## Portée
+## Scope
 
-- Développé et testé sur **SONiX AULA EA75MAX** (`0c45:800a`, format 75 %).
-  Devrait fonctionner en partie sur les autres claviers de la même famille
-  (AULA / Epomaker / Ajazz à puce SONiX `0c45:800a`) ; la disposition
-  (`layout_ea75.py`) et les index sont à adapter.
-- Le protocole vient de la rétro-ingénierie de
+- Built and tested on **SONiX AULA EA75MAX** (`0c45:800a`, 75% layout).
+  Likely partially works on other keyboards of the same family (AULA / Epomaker
+  / Ajazz on the SONiX `0c45:800a` chip); the layout (`layout_ea75.py`) and the
+  indices would need adapting.
+- The protocol comes from the reverse-engineering work in
   [`parsiya/f108-pro`](https://github.com/parsiya/f108-pro) (Aula F108 Pro,
-  même puce).
+  same chip).
 
-## Crédits
+## Credits
 
-Protocole HID reconstitué à partir de
-[`parsiya/f108-pro`](https://github.com/parsiya/f108-pro) de Parsia Hakimian
-(licence MIT) — décompilation Ghidra du logiciel Aula + captures USB.
+HID protocol reconstructed from
+[`parsiya/f108-pro`](https://github.com/parsiya/f108-pro) by Parsia Hakimian
+(MIT license) — Ghidra decompilation of the Aula software plus USB captures.
 
-## Licence
+## License
 
-MIT — voir [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
