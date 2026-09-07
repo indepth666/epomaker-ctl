@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# venv
+.venv/
+venv/
+env/
+
+# éditeurs
+.vscode/
+.idea/
+*.swp
+
+# config locale de test (profils, calibration) — propre à chaque utilisateur
+# normalement dans ~/.config/epomaker-gui/, mais au cas où
+epomaker-gui/
+*.local.json

@@ -1,0 +1,12 @@
+# Acces non-root au clavier EPOMAKER / AULA (SONiX 0c45:800a)
+# Installation :
+#   sudo cp 99-epomaker.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# Puis rebrancher le clavier.
+#
+# Note : sur beaucoup de setups Arch/systemd, l'ACL "uaccess" donne deja
+# l'acces a l'utilisateur de la session locale (c'etait le cas ici) ; cette
+# regle sert de filet de securite / pour les sessions distantes.
+
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="800a", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="800a", MODE="0660", TAG+="uaccess"

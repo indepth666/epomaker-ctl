@@ -1,0 +1,8 @@
+# epomaker-ctl
+#
+# La CLI (epomaker.py) et l'application headless (apply_profile.py) n'utilisent
+# QUE la bibliotheque standard de Python (>= 3.10). Aucune dependance requise.
+#
+# La seule dependance ci-dessous concerne l'interface graphique (gui.py).
+
+PySide6>=6.5
