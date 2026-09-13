@@ -207,6 +207,11 @@ class Worker(QtCore.QObject):
 # Petits helpers UI
 # ---------------------------------------------------------------------------
 
+def systemd_quote(s: str) -> str:
+    """Echappe un argument pour une ligne ExecStart= (quoting systemd)."""
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 def card(*children, spacing=12, margins=(16, 16, 16, 16)) -> QtWidgets.QFrame:
     f = QtWidgets.QFrame()
     f.setObjectName("card")
@@ -1198,7 +1203,7 @@ After=graphical-session.target
 [Service]
 Type=oneshot
 ExecStartPre=/bin/sleep 3
-ExecStart={sys.executable} {script} {name}
+ExecStart={systemd_quote(sys.executable)} {systemd_quote(str(script))} {systemd_quote(name)}
 
 [Install]
 WantedBy=default.target
